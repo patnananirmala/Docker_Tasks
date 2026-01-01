@@ -1,0 +1,239 @@
+##Docker Installation
+Step 1: Install Docker on Ubuntu (AWS VM) 
+# Update package list 
+sudo apt update 
+# Install prerequisite packages 
+sudo apt install -y ca-certificates curl gnupg 
+# Add Docker's official GPG key 
+sudo install -m 0755 -d /etc/apt/keyrings 
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \ 
+sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 
+sudo chmod a+r /etc/apt/keyrings/docker.gpg 
+# Set up the Docker repository 
+echo \ 
+"deb [arch=$(dpkg --print-architecture) \ 
+signed-by=/etc/apt/keyrings/docker.gpg] \ 
+https://download.docker.com/linux/ubuntu \ 
+$(lsb_release -cs) stable" | \ 
+sudo tee /etc/apt/sources.list.d/docker.list > /dev/null 
+# Install Docker Engine 
+sudo apt update 
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 
+# Verify Docker is installed 
+docker --version 
+Step 2: Add Your User to the Docker Group (Optional) 
+sudo usermod -aG docker $USER 
+# Then log out and log back in (or run `newgrp docker`) 
+Step 3: Test Docker with Some Basic Commands 
+# Check Docker status 
+sudo systemctl status docker 
+# Run hello-world container 
+docker run hello-world 
+# List all running containers 
+docker ps 
+# List all containers (including stopped ones) 
+docker ps -a 
+# List images 
+docker images 
+# Remove a container (replace <container_id>) 
+docker rm <container_id> 
+# Remove an image (replace <image_id>) 
+docker rmi <image_id> 
+Installing Kubectl 
+MiniKube Installation 
+Download the latest release with the command 
+curl -LO https://dl.k8s.io/release/$(curl -L -s 
+https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl 
+Validate the binary (optional) 
+curl -LO https://dl.k8s.io/release/$(curl -L -s 
+https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256 
+Validate the kubectl binary against the checksum file: 
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum –check 
+If valid, the output is: 
+kubectl: OK 
+Install kubectl 
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl 
+Check kubectl version  
+kubectl version –client 
+Check kubectl version - Detailed 
+kubectl version --client --output=yaml 
+Install Minikube on Ubuntu 
+Step 1: Download the latest Minikube binary 
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 
+Install it to your system path 
+sudo install minikube-linux-amd64 /usr/local/bin/minikube 
+Check Minikube version 
+minikube version 
+Output - minikube version: v1.33.1 
+Start Minikube with Docker driver 
+minikube start --driver=docker 
+Verify the cluster 
+kubectl get nodes 
+minikube   Ready    control-plane   1m    v1.33.x 
+Checking basic configuration of Kubernetes 
+To list Pods only in the current namespace: 
+kubectl get pods 
+To list all Pods across all namespaces: 
+kubectl get pods --all-namespaces 
+kubectl get pods -A 
+To include more details (e.g., IP, Node): in all namespaces 
+kubectl get pods -o wide --all-namespaces 
+Create alias for kubectl commands 
+alias k=kubectl 
+Getting Started 
+Create a Pod from YAML 
+Inspect the YAML 
+cat ~/yaml_files/my-5gc-pod.yaml 
+Create the Pod 
+kubectl apply -f ~/yaml_files/my-5gc-pod.yaml 
+Verify the Pod 
+kubectl get pods 
+Check Pod details 
+kubectl describe pod my-5gc-pod 
+Access the Pod (exec into container) 
+kubectl exec -it my-5gc-pod -- /bin/bash 
+hostname 
+exit 
+Exploring K8s Services 
+Check the pod Running- 
+kubectl get pod my-5gc-pod 
+Expose via ClusterIP (Default) 
+kubectl expose pod my-5gc-pod --type=ClusterIP --port=80 --target-port=80 --name=my
+5gc-svc-clusterip 
+Check service: 
+kubectl get svc 
+This is only accessible within the cluster — useful for internal microservice 
+communication. 
+Expose via NodePort 
+kubectl expose pod my-5gc-pod --type=NodePort --port=80 --target-port=80 --name=my
+5gc-svc-nodeport 
+Check Nodeport service: 
+kubectl get svc my-5gc-svc-nodeport  
+or  
+kubectl get svc 
+Expose via LoadBalancer (Optional) 
+kubectl expose pod my-5gc-pod --type=LoadBalancer --port=80 --target-port=80 -
+name=my-5gc-svc-lb 
+Check LoadBalancer  service: 
+kubectl get svc my-5gc-svc-lb 
+Optional: Use ExternalName (DNS redirect) 
+This doesn't expose a Pod — it maps a service name to an external DNS name. 
+Create a Yaml File (my-5gc-externalname.yaml) 
+apiVersion: v1 
+kind: Service 
+metadata: 
+name: my-5gc-externalname 
+spec: 
+type: ExternalName 
+externalName: telcolearn.com 
+Apply  
+kubectl apply -f my-5gc-externalname.yaml 
+K8s Workloads 
+Create a Pod using YAML 
+kubectl apply -f my-5gc-pod.yaml 
+Verify: 
+kubectl get pods 
+kubectl describe pod <pod-name> 
+This creates a single pod. If the pod crashes, Kubernetes will not recreate it. 
+Create Multiple Pods using a ReplicaSet (File: my-5gc-replicaset.yaml) 
+Apply ReplicaSet 
+kubectl apply -f my-5gc-replicaset.yaml 
+Verify ReplicaSet: 
+kubectl get replicasets 
+kubectl get pods -l app=my-5gc 
+Try deleting one of pods and see if ReplicaSet deploys a new Pod 
+Create a Deployment (File: my-5gc-deployment.yaml) 
+Before you start deployment, please delete all Pods and ReplicaSets 
+kubectl delete -f my-5gc-replicaset.yaml 
+kubectl get pods 
+kubectl get replicasets 
+Applying Deployment  
+kubectl apply -f my-5gc-deployment.yaml 
+Verifying deployment: 
+kubectl get deployments 
+kubectl get ReplicaSet 
+kubectl get pods -l app=my-5gc 
+Deployment manages ReplicaSets behind the scenes and is the recommended way to 
+manage stateless apps (auto-rollout, rollback, etc.). 
+Scale Deployment to 6 Replicas 
+kubectl scale deployment my-5gc-deployment --replicas=6 
+Verify Scaling 
+kubectl get pods 
+kubectl get deployment my-5gc-deployment 
+Delete Deployment 
+kubectl delete deployment my-5gc-deployment 
+Kubernetes Networking Exercise 
+ 
+Create an Nginx Deployment 
+nano nginx-deployment.yaml 
+ 
+Paste this content: 
+ 
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: nginx-deploy 
+spec: 
+  replicas: 2 
+  selector: 
+    matchLabels: 
+      app: nginx 
+  template: 
+    metadata: 
+      labels: 
+        app: nginx 
+    spec: 
+      containers: 
+      - name: nginx 
+        image: nginx:1.25 
+        ports: 
+        - containerPort: 80 
+ 
+Ctrl+o , Enter and Ctrl+x 
+ 
+Apply this deployment- 
+kubectl apply -f nginx-deployment.yaml 
+ 
+Check Pods 
+kubectl get pods -l app=nginx 
+ 
+Expose the Deployment via ClusterIP (Internal Access) 
+kubectl expose deployment nginx-deploy \ 
+  --port=80 \ 
+  --target-port=80 \ 
+  --type=ClusterIP \ 
+  --name=nginx-service 
+ 
+Verify Service: 
+kubectl get svc nginx-service 
+ 
+Test Network Access from Inside the Cluster 
+Run a temporary pod with wget: 
+kubectl run tester --image=busybox --restart=Never -it --rm --command – sh 
+ 
+Then inside the tester pod: 
+wget -qO- http://nginx-service 
+You should see the HTML content: “Welcome to nginx!” 
+Exit 
+ConfigMap and Secrets 
+ConfigMap 
+Check ConfigMap Yaml file: (my-5gc-configmap.yaml ) 
+Cat my-5gc-configmap.yaml 
+Apply ConfigMap: 
+kubectl apply -f my-5gc-configmap.yaml 
+Verify: 
+kubectl get configmap my-5gc-config -o yaml 
+Optional: 
+• Step 1: Apply the ConfigMap 
+• Step 2: Create a Pod that uses this ConfigMap 
+• Step 3: Verify the Pod and ConfigMap 
+Secrets 
+Check Secret Yaml file: (my-5gc-secret.yaml) 
+Cat my-5gc-secret.yaml 
+Apply Secret: 
+kubectl apply -f my-5gc-secret.yaml 
+Verify Secret: 
+kubectl get secret my-5gc-secret -o yaml 
+Optional: 
+• Create a Pod to Use This Secret 
+• Verify the Secret Inside the Pod
